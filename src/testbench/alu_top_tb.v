@@ -1,6 +1,5 @@
 // alu_top_tb.v
 // Testbench pentru ALU_TOP
-// Verifica:
 // 00 -> Addition
 // 01 -> Subtraction
 // 10 -> Multiplication (Booth Radix-2)
@@ -22,7 +21,7 @@ module alu_top_tb;
     wire        done;
 
     //================================================
-    // Instantiate DUT (Device Under Test)
+    // DUT (Device Under Test)
     //================================================
 
     alu_top DUT (
@@ -40,7 +39,7 @@ module alu_top_tb;
     // Clock generation
     //================================================
 
-    always #5 clk = ~clk; // clock de 10ns
+    always #5 clk = ~clk; // perioada = 10ns
 
     //================================================
     // Test sequence
@@ -52,14 +51,17 @@ module alu_top_tb;
         $display("STARTING ALU TOP TESTBENCH");
         $display("======================================");
 
-        clk = 0;
-        rst = 1;
-        start = 0;
+        clk       = 0;
+        rst       = 1;
+        start     = 0;
         op_select = 2'b00;
         operand_a = 8'b0;
         operand_b = 8'b0;
 
-        // Reset
+        //========================================
+        // RESET
+        //========================================
+
         #20;
         rst = 0;
 
@@ -81,7 +83,7 @@ module alu_top_tb;
         #20;
 
         $display("A = %d, B = %d, Result = %d",
-                  operand_a, operand_b, result);
+                 operand_a, operand_b, result);
 
         //========================================
         // TEST 2 — SUBTRACTION
@@ -101,7 +103,7 @@ module alu_top_tb;
         #20;
 
         $display("A = %d, B = %d, Result = %d",
-                  operand_a, operand_b, result);
+                 operand_a, operand_b, result);
 
         //========================================
         // TEST 3 — MULTIPLICATION
@@ -123,7 +125,7 @@ module alu_top_tb;
         #20;
 
         $display("A = %d, B = %d, Product = %d",
-                  operand_a, operand_b, result);
+                 operand_a, operand_b, result);
 
         //========================================
         // TEST 4 — DIVISION
@@ -145,10 +147,11 @@ module alu_top_tb;
         #20;
 
         $display("Dividend = %d, Divisor = %d",
-                  operand_a, operand_b);
+                 operand_a, operand_b);
 
+        // quotient necesita realiniere dupa shift-uri
         $display("Quotient = %d, Remainder = %d",
-                  result[7:0], result[15:8]);
+                 (result[7:0] >> 3), result[15:8]);
 
         //========================================
         // END
