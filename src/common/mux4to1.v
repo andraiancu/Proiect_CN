@@ -4,7 +4,7 @@ module mux4to1_16bit(
     input [15:0] in2,    // Rezultat Inmultire
     input [15:0] in3,    // Rezultat Impartire 
   input [1:0]  sel,    // selectia
-    output [15:0] out
+    output reg [15:0] out
 );
 
     always @(*) begin
