@@ -1,78 +1,124 @@
+// multiplier.v
+// Booth Radix-2 Multiplier pe 8 biti
+// Product final pe 16 biti
+
 module multiplier_br2(
-    input  [7:0] multiplicand, // M (Deinmultitul)
-    input  [7:0] multiplier,   // Q (Inmultitorul)
+    input  [7:0] multiplicand,   // M
+    input  [7:0] multiplier,     // Q
     input        clk,
     input        rst,
     input        start,
-  output [15:0] product,     // rex 16 biti A si Q
-    output reg   done
+
+    output [15:0] product,
+    output reg    done
 );
 
-  
-    reg [7:0] A;      // Acumulatorul 
-    reg [7:0] Q;      // Multiplicatorul 
-    reg [7:0] M;      // Multiplicandul
-    reg       q_m1;   // Bitul Q-1 
-  reg [3:0] count;  // Numaratorul de iteratii de la 1 la 8
+    //========================================
+    // REGISTRE INTERNE
+    //========================================
 
+    reg [7:0] A;       // Acumulator
+    reg [7:0] Q;       // Multiplier
+    reg [7:0] M;       // Multiplicand
+    reg       q_m1;    // Q(-1)
+    reg [3:0] count;   // 8 iteratii
 
-  wire [8:0] sum_diff; // iesirea de 9 biti s
-    wire mode;           // 0 sau 1 pt adunare sau scadere
-    
-   //01 adunare 10 scadere 
-    assign mode = (Q[0] == 1 && q_m1 == 0);
+    //========================================
+    // ADD / SUB CONTROL
+    //========================================
 
-    
-    adder_subtractor_9bit CALC_UNIT (
+    wire [8:0] sum_diff;
+    wire mode;
+
+    // Booth logic:
+    // 01 -> ADD
+    // 10 -> SUB
+    //
+    // mode = 0 => add
+    // mode = 1 => subtract
+
+    assign mode = (Q[0] == 1'b1 && q_m1 == 1'b0);
+
+    //========================================
+    // ADDER / SUBTRACTOR
+    //========================================
+
+    adder_sub_9bit CALC_UNIT (
         .a(A),
         .b(M),
         .mode(mode),
         .sum_diff(sum_diff),
-      .cout_bout() // bit de depasire, pt carry sau imprumut
+        .cout_bout()
     );
 
-    // rez final s, A si Q concatenate
+    //========================================
+    // FINAL PRODUCT
+    //========================================
+
     assign product = {A, Q};
 
-   //automatul de stari, operatie si stare
+    //========================================
+    // SEQUENTIAL LOGIC
+    //========================================
+
     always @(posedge clk or posedge rst) begin
+
+        // RESET
         if (rst) begin
-            A <= 8'b0;
-            Q <= 8'b0;
-            M <= 8'b0;
-            q_m1 <= 1'b0;
+            A     <= 8'b0;
+            Q     <= 8'b0;
+            M     <= 8'b0;
+            q_m1  <= 1'b0;
             count <= 4'b0;
-            done <= 1'b0;
-        end 
-        else if (start) begin
-          
-            M <= multiplicand;
-            Q <= multiplier;
-            A <= 8'b0;
-            q_m1 <= 1'b0;
-            count <= 4'b0;
-            done <= 1'b0;
-        end 
-        else if (count < 8) begin
-            
-            
-            if (Q[0] ^ q_m1) begin
-                // CAZUL 01 sau 10: Calcul + Shiftare Aritmetica
-                // Sshift la dreapta
-                // bitul de semn sum_diff[8] se multiplica pentru shiftare aritmetica
-                {A, Q, q_m1} <= {sum_diff[8], sum_diff[8:0], Q};
-            end 
-            else begin
-                // CAZUL 00 sau 11: Doar Shiftare Aritmetica 
-                // Pastram bitul de semn A[7]
-                {A, Q, q_m1} <= {A[7], A, Q};
-            end
-            
-            count <= count + 1;
-        end 
-        else begin
-            done <= 1'b1; // semnanul done
+            done  <= 1'b0;
         end
+
+        // START OPERATION
+        else if (start) begin
+            M     <= multiplicand;
+            Q     <= multiplier;
+            A     <= 8'b0;
+            q_m1  <= 1'b0;
+            count <= 4'b0;
+            done  <= 1'b0;
+        end
+
+        // MAIN BOOTH LOOP
+        else if (count < 8) begin
+
+            // daca Q0 si Q(-1) sunt diferite:
+            // 01 sau 10 -> add/sub + arithmetic shift
+            if (Q[0] ^ q_m1) begin
+
+                // arithmetic right shift
+                // semnul este sum_diff[8]
+
+                {A, Q, q_m1} <= {
+                    sum_diff[8],      // sign extension
+                    sum_diff[8:0],
+                    Q
+                };
+            end
+
+            // daca sunt 00 sau 11:
+            // doar arithmetic shift
+            else begin
+
+                {A, Q, q_m1} <= {
+                    A[7],             // preserve sign
+                    A,
+                    Q
+                };
+            end
+
+            count <= count + 1'b1;
+        end
+
+        // FINISH
+        else begin
+            done <= 1'b1;
+        end
+
     end
 
 endmodule
