@@ -1,12 +1,6 @@
 // divider.v
 // Restoring Division pe 8 biti
-// Input:
-//   dividend = deimpartit
-//   divisor  = impartitor
-//
-// Output:
-//   quotient  = cat
-//   remainder = rest
+// Corectat pentru quotient corect
 
 module divider_restoring(
     input  [7:0] dividend,
@@ -24,30 +18,36 @@ module divider_restoring(
     // REGISTRE INTERNE
     //========================================
 
-    reg [7:0] A;      // Acumulator (rest partial)
-    reg [7:0] Q;      // Dividend -> Quotient
-    reg [7:0] M;      // Divisor
+    reg [7:0] A;      // remainder partial
+    reg [7:0] Q;      // dividend -> quotient
+    reg [7:0] M;      // divisor
     reg [3:0] count;  // 8 iteratii
 
     //========================================
-    // SHIFT LEFT pentru A
+    // SHIFT LEFT COMBINED [A,Q]
     //========================================
 
-    // A <- shift left, cu Q[7] introdus pe LSB
+    // In restoring division:
+    // [A,Q] <- left shift [A,Q]
+
     wire [7:0] A_shifted;
+    wire [7:0] Q_shifted;
+
     assign A_shifted = {A[6:0], Q[7]};
+    assign Q_shifted = {Q[6:0], 1'b0};
 
     //========================================
     // SUBTRACTOR
     //========================================
 
-    // A_shifted - M
     wire [8:0] sub_out;
+
+    // A_shifted - M
 
     adder_sub_9bit SUB_UNIT (
         .a(A_shifted),
         .b(M),
-        .mode(1'b1),       // 1 = subtraction
+        .mode(1'b1),
         .sum_diff(sub_out),
         .cout_bout()
     );
@@ -74,7 +74,7 @@ module divider_restoring(
             done  <= 1'b0;
         end
 
-        // START OPERATION
+        // START
         else if (start) begin
             A     <= 8'b0;
             Q     <= dividend;
@@ -83,25 +83,29 @@ module divider_restoring(
             done  <= 1'b0;
         end
 
-        // MAIN DIVISION LOOP
+        // MAIN LOOP
         else if (count < 8) begin
 
-            // daca rezultatul scaderii este negativ
+            // daca A_shifted - M este negativ
             if (sub_out[8] == 1'b1) begin
+
                 // restore:
                 // A ramane A_shifted
                 // Q[0] = 0
-                A <= A_shifted;
-                Q <= {Q[6:0], 1'b0};
-            end
 
-            // daca rezultatul este pozitiv
+                A <= A_shifted;
+                Q <= Q_shifted;
+
+            end
             else begin
-                // accept subtraction:
+
+                // subtraction accepted
                 // A = rezultat
                 // Q[0] = 1
+
                 A <= sub_out[7:0];
-                Q <= {Q[6:0], 1'b1};
+                Q <= {Q_shifted[7:1], 1'b1};
+
             end
 
             count <= count + 1'b1;
