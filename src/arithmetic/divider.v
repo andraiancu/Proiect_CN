@@ -98,14 +98,8 @@ module divider_restoring(
 
             end
             else begin
-
-                // subtraction accepted
-                // A = rezultat
-                // Q[0] = 1
-
                 A <= sub_out[7:0];
-                Q <= {Q_shifted[7:1], 1'b1};
-
+                Q <= {Q[6:0], 1'b1};
             end
 
             count <= count + 1'b1;
