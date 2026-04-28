@@ -14,16 +14,17 @@ module alu_top(
     output        done
 );
 
-    //========================
+    //========================================
     // WIRES
-    //========================
+    //========================================
 
     wire [8:0] add_result;
     wire [8:0] sub_result;
 
     wire [15:0] mult_result;
-    wire [7:0]  div_quotient;
-    wire [7:0]  div_remainder;
+
+    wire [7:0] div_quotient;
+    wire [7:0] div_remainder;
 
     wire mult_done;
     wire div_done;
@@ -31,16 +32,14 @@ module alu_top(
     wire mult_start;
     wire div_start;
 
-    wire result_valid;
-
     // rezultate extinse la 16 biti
     wire [15:0] add_result_ext;
     wire [15:0] sub_result_ext;
     wire [15:0] div_result_ext;
 
-    //========================
+    //========================================
     // ADDITION
-    //========================
+    //========================================
 
     adder_sub_9bit ADD_UNIT (
         .a(operand_a),
@@ -50,9 +49,9 @@ module alu_top(
         .cout_bout()
     );
 
-    //========================
+    //========================================
     // SUBTRACTION
-    //========================
+    //========================================
 
     adder_sub_9bit SUB_UNIT (
         .a(operand_a),
@@ -62,9 +61,9 @@ module alu_top(
         .cout_bout()
     );
 
-    //========================
+    //========================================
     // MULTIPLICATION
-    //========================
+    //========================================
 
     multiplier_br2 MULT_UNIT (
         .multiplicand(operand_a),
@@ -76,9 +75,9 @@ module alu_top(
         .done(mult_done)
     );
 
-    //========================
+    //========================================
     // DIVISION
-    //========================
+    //========================================
 
     divider_restoring DIV_UNIT (
         .dividend(operand_a),
@@ -91,35 +90,32 @@ module alu_top(
         .done(div_done)
     );
 
-    //========================
+    //========================================
     // CONTROL UNIT
-    //========================
+    //========================================
 
     control_unit CTRL (
         .clk(clk),
         .rst(rst),
         .start(start),
         .op_select(op_select),
-        .mult_done(mult_done),
-        .div_done(div_done),
         .mult_start(mult_start),
-        .div_start(div_start),
-        .result_valid(result_valid)
+        .div_start(div_start)
     );
 
-    //========================
+    //========================================
     // RESULT FORMATTING
-    //========================
+    //========================================
 
     assign add_result_ext = {7'b0, add_result};
     assign sub_result_ext = {7'b0, sub_result};
 
-    // quotient + remainder
+    // [ remainder | quotient ]
     assign div_result_ext = {div_remainder, div_quotient};
 
-    //========================
+    //========================================
     // OUTPUT MUX
-    //========================
+    //========================================
 
     mux4to1_16bit RESULT_MUX (
         .in0(add_result_ext),
@@ -130,7 +126,14 @@ module alu_top(
         .out(result)
     );
 
-    // done final
-    assign done = result_valid;
+    //========================================
+    // DONE SIGNAL
+    //========================================
+
+    assign done =
+        (op_select == 2'b00) ? 1'b1 :   // add
+        (op_select == 2'b01) ? 1'b1 :   // sub
+        (op_select == 2'b10) ? mult_done :
+                               div_done;
 
 endmodule
